@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block title %}Reservations{% endblock %}
+{% block header %}All Reservations{% endblock %}
+
+{% block content %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Guest</th>
+        <th>Placed On</th>
+        <th>Check-In Date</th>
+        <th>Hotel</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for res in reservations %}
+      <tr>
+        <td>{{ res.reservationId }}</td>
+        <td>{{ res.customerFirstName }} {{ res.customerLastName }}</td>
+        <td>{{ res.reservationPlacementDate.strftime('%Y-%m-%d') }}</td>
+        <td>
+          {% if res.checkInDate %}
+            {{ res.checkInDate.strftime('%Y-%m-%d') }}
+          {% else %}
+            &mdash;
+          {% endif %}
+        </td>
+        <td>{{ res.hotel or '&mdash;' }}</td>
+        <td>{{ res.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

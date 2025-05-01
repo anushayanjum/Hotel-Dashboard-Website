@@ -1,0 +1,259 @@
+/*──────────────────────────────────────────────────────────────────────────────
+  style.css
+  ──────────────────────────────────────────────────────────────────────────────
+  - Google Font import
+  - CSS variables for colors, spacings & typography
+  - Sidebar + logo
+  - Main content, filter form, cards, charts
+  - Tables with responsive wrapper
+──────────────────────────────────────────────────────────────────────────────*/
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+:root {
+  /* ─── TYPO ─────────────────────────────────────────────────────────────── */
+  --font-sans:   'Poppins', sans-serif;
+  --text:        #333;
+
+  /* ─── COLORS ──────────────────────────────────────────────────────────── */
+  --primary:     #005680;
+  --secondary:   #00a5cf;
+  --bg-light:    #f5f8fa;
+  --card-bg:     #ffffff;
+
+  /* ─── SPACING ────────────────────────────────────────────────────────── */
+  --gutter:      1.5rem;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  display: flex;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  color: var(--text);
+  background-color: var(--bg-light);
+}
+
+/*──────────────────────────────────────────────────────────────────────────────
+  SIDEBAR
+──────────────────────────────────────────────────────────────────────────────*/
+.sidebar {
+  width: 240px;
+  background-color: var(--primary);
+  color: #fff;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: var(--gutter);
+}
+
+/* logo at top of sidebar */
+.logo-container {
+  margin-bottom: var(--gutter);
+}
+.logo-container .logo {
+  max-width: 160px;
+  height: auto;
+  display: block;
+}
+
+/* simple watermark behind nav (optional) */
+.sidebar::before {
+  content: "";
+  position: absolute;
+  top: var(--gutter);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 120px;
+  background: url('../img/logo.png') no-repeat center/contain;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.sidebar nav {
+  width: 100%;
+}
+.sidebar nav a {
+  display: block;
+  width: 100%;
+  padding: 0.75rem var(--gutter);
+  color: rgba(255,255,255,0.8);
+  text-decoration: none;
+  font-weight: 600;
+  transition: background .2s, color .2s;
+}
+.sidebar nav a:hover,
+.sidebar nav a.active {
+  background-color: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+/*──────────────────────────────────────────────────────────────────────────────
+  MAIN CONTENT
+──────────────────────────────────────────────────────────────────────────────*/
+.main-content {
+  flex: 1;
+  padding: var(--gutter);
+}
+
+header h1 {
+  font-size: 1.75rem;
+  color: var(--primary);
+  margin-bottom: var(--gutter);
+}
+
+/*──────────────────────────────────────────────────────────────────────────────
+  FILTER FORM
+──────────────────────────────────────────────────────────────────────────────*/
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gutter);
+  margin-bottom: var(--gutter);
+}
+.filter-form label {
+  font-weight: 600;
+}
+.filter-form input,
+.filter-form select,
+.filter-form button {
+  padding: .5rem .75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+}
+.filter-form button {
+  background-color: var(--secondary);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.filter-form button:hover {
+  filter: brightness(0.9);
+}
+
+/*──────────────────────────────────────────────────────────────────────────────
+  DASHBOARD CARDS
+──────────────────────────────────────────────────────────────────────────────*/
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+  gap: var(--gutter);
+  margin-bottom: var(--gutter);
+}
+.card {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  padding: var(--gutter);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.card h3 {
+  color: var(--secondary);
+  margin-bottom: .75rem;
+}
+.card p,
+.card li {
+  margin-bottom: .5rem;
+  line-height: 1.3;
+}
+
+/* Q→Q % badge */
+.pct-change {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .2rem .5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.pct-change.up {
+  background: #e6f4ea;
+  color: #2e7d32;
+}
+.pct-change.down {
+  background: #fdecea;
+  color: #c62828;
+}
+
+/*──────────────────────────────────────────────────────────────────────────────
+  CHARTS
+──────────────────────────────────────────────────────────────────────────────*/
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px,1fr));
+  gap: var(--gutter);
+  margin-bottom: var(--gutter);
+}
+.chart-card {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  padding: var(--gutter);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  /* maintain a 16:9 ratio at all widths */
+  aspect-ratio: 16 / 9;
+  position: relative;
+}
+.chart-card canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/*──────────────────────────────────────────────────────────────────────────────
+  LISTS
+──────────────────────────────────────────────────────────────────────────────*/
+ol {
+  padding-left: 1.25rem;
+}
+ul {
+  list-style: disc inside;
+}
+
+/*──────────────────────────────────────────────────────────────────────────────
+  TABLES (with responsive wrapper)
+──────────────────────────────────────────────────────────────────────────────*/
+.table-responsive {
+  overflow-x: auto;
+  margin: var(--gutter) 0;
+}
+
+.main-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+}
+
+.main-content th,
+.main-content td {
+  border: 1px solid #ddd;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.main-content th {
+  background-color: #f4f7fa;
+  font-weight: 600;
+}
+
+.main-content tr:nth-child(even) {
+  background-color: #fbfcfd;
+}
+.main-content tr:hover {
+  background-color: #eef2f6;
+}
+
+.main-content caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}

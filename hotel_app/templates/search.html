@@ -1,0 +1,32 @@
+{# templates/search.html #}
+{% extends "layout.html" %}
+{% block title %}Search Rooms{% endblock %}
+
+{% block content %}
+  <h1>Search Rooms</h1>
+
+  <form method="get" action="{{ url_for('search_rooms') }}" class="mb-4">
+    <input
+      type="text"
+      name="query"
+      placeholder="Enter room number…"
+      value="{{ query }}"
+      required
+      style="padding: .5em; width: 200px;"
+    />
+    <button type="submit" style="padding: .5em 1em;">Search</button>
+  </form>
+
+  {% if query %}
+    <p>Results for “<strong>{{ query }}</strong>”:</p>
+    <ul>
+      {% for r in rooms %}
+        <li>Room #{{ r.roomNum }} (ID: {{ r.roomId }})</li>
+      {% else %}
+        <li><em>No rooms found.</em></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p><em>Enter a room number to search.</em></p>
+  {% endif %}
+{% endblock %}

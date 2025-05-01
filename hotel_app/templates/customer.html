@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block title %}Customer Search{% endblock %}
+
+{% block content %}
+  <h1>Customer Search</h1>
+
+  <form method="get" class="filter-form">
+    <input
+      type="text"
+      name="q"
+      value="{{ query }}"
+      placeholder="Enter first or last name…"
+      style="padding:0.5em; width:250px;"
+    >
+    <button type="submit">Search</button>
+  </form>
+
+  {% if customers %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th><th>First</th><th>Last</th><th>Phone</th><th>Email</th>
+          <th>Org</th><th>Card</th><th>Advance Dep.</th><th>Confidential</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in customers %}
+        <tr>
+          <td>{{ c.customerId }}</td>
+          <td>{{ c.customerFirstName }}</td>
+          <td>{{ c.customerLastName }}</td>
+          <td>{{ c.customerPhoneNumber }}</td>
+          <td>{{ c.customerEmail }}</td>
+          <td>{{ c.organizationName or '—' }}</td>
+          <td>{{ c.cardOnFile or '—' }}</td>
+          <td>{{ 'Yes' if c.requiresAdvanceDeposit else 'No' }}</td>
+          <td>{{ 'Yes' if c.confidentialWhereabouts else 'No' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>
+      {% if query %}
+        No customers match “<strong>{{ query }}</strong>.”
+      {% else %}
+        There are no customers in the system.
+      {% endif %}
+    </p>
+  {% endif %}
+{% endblock %}

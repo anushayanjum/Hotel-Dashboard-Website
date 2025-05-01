@@ -1,0 +1,60 @@
+{# templates/hotel_detail.html #}
+{% extends "layout.html" %}
+{% block title %}{{ hotel.hotelName }}{% endblock %}
+
+{% block content %}
+  <h1>{{ hotel.hotelName }}</h1>
+  <p><strong>Address:</strong> {{ hotel.address }}</p>
+
+  {# ── Year/Quarter picker ── #}
+  <form method="get" class="filter-form" style="margin-bottom:1.5em;">
+    <label>
+      Year:
+      <input type="number" name="year" value="{{ year }}" min="2000" max="{{ current_year }}" required>
+    </label>
+    &nbsp;
+    <label>
+      Quarter:
+      <select name="quarter">
+        <option value="" {% if not quarter %}selected{% endif %}>All</option>
+        {% for q in [1,2,3,4] %}
+          <option value="{{ q }}" {% if quarter==q %}selected{% endif %}>Q{{ q }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    &nbsp;
+    <button type="submit">Apply</button>
+  </form>
+
+  {# ── Revenue summary ── #}
+  <div class="card" style="padding:1em; margin-bottom:2em;">
+    <h2>Revenue ({{ year }}{% if quarter %} Q{{ quarter }}{% endif %})</h2>
+    <p><strong>Total:</strong> ${{ "{:,.2f}".format(total_rev) }}</p>
+    <p><strong>Meeting:</strong> ${{ "{:,.2f}".format(meeting_rev) }}</p>
+    <p><strong>Sleeping:</strong> ${{ "{:,.2f}".format(sleeping_rev) }}</p>
+  </div>
+
+  {# ── Rooms table ── #}
+  <h2>Rooms</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>Accessible</th><th>Pool</th><th>Restaurant</th>
+        <th>Parking</th><th>Gym</th><th>Smoking</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rooms %}
+      <tr>
+        <td>{{ r.roomNum }}</td>
+        <td>{{ '✔' if r.handicapAccess else '—' }}</td>
+        <td>{{ '✔' if r.closeToPool else '—' }}</td>
+        <td>{{ '✔' if r.closeToRestaurant else '—' }}</td>
+        <td>{{ '✔' if r.closeToParking else '—' }}</td>
+        <td>{{ '✔' if r.closeToGym else '—' }}</td>
+        <td>{{ '🚬' if r.smoking else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

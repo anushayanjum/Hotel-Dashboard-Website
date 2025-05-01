@@ -1,0 +1,143 @@
+{% extends "layout.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block header %}Dashboard{% endblock %}
+
+{% block content %}
+  <form method="get" class="filter-form">
+    <label>
+      Year:
+      <input type="number" name="year" value="{{ year }}" min="2000" max="{{ current_year }}">
+    </label>
+    <label>
+      Quarter:
+      <select name="quarter">
+        <option value="" {% if not quarter %}selected{% endif %}>&mdash; All &mdash;</option>
+        {% for q, label in [(1,'Q1'), (2,'Q2'), (3,'Q3'), (4,'Q4')] %}
+          <option value="{{ q }}" {% if quarter == q %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Apply</button>
+  </form>
+
+  <div class="cards">
+    <div class="card">
+      <h3>Revenue Insights</h3>
+      <p><strong>Total:</strong> ${{ total_rev|round(2) }}</p>
+      <p><strong>Reservations:</strong> ${{ reservations_rev|round(2) }}</p>
+      <p>&nbsp;&nbsp;&mdash; Meeting: ${{ meeting_rev|round(2) }}</p>
+      <p>&nbsp;&nbsp;&mdash; Sleeping: ${{ sleeping_rev|round(2) }}</p>
+      {% if pct_rev_change is not none %}
+        <div class="pct-change {% if pct_rev_change >= 0 %}up{% else %}down{% endif %}">
+          {{ pct_rev_change|round(1) }}%
+          <span class="arrow">{% if pct_rev_change >= 0 %}▲{% else %}▼{% endif %}</span> vs last Q
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h3>Top 5 Customers</h3>
+      <ol>
+        {% for c in top_customers %}
+          <li>{{ c.name }} — ${{ c.revenue|round(2) }}</li>
+        {% endfor %}
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>Most Profitable Hotel</h3>
+      <p>{{ most_profitable.hotelName }} — ${{ most_profitable.revenue|round(2) }}</p>
+    </div>
+
+    <div class="card">
+      <h3>Maintenance Requests</h3>
+      <ul>
+        {% for m in maint_per_hotel %}
+          <li>{{ m.hotel }}: {{ m.req_count }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>Reservations</h3>
+      <p><strong>Total:</strong> {{ total_res }}</p>
+      <p>
+        <strong>Avg Stay:</strong>
+        {% if avg_overall is not none %}
+          {{ avg_overall|round(1) }} days
+        {% else %}
+          N/A
+        {% endif %}
+      </p>
+      <p>
+        &nbsp;&nbsp;&mdash; Meeting:
+        {% if avg_meet is not none %}
+          {{ avg_meet|round(1) }} days
+        {% else %}
+          N/A
+        {% endif %}
+      </p>
+      <p>
+        &nbsp;&nbsp;&mdash; Sleeping:
+        {% if avg_sleep is not none %}
+          {{ avg_sleep|round(1) }} days
+        {% else %}
+          N/A
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="chart-card">
+      <h4>Monthly Bookings</h4>
+      <canvas id="bookingsChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <h4>Revenue Trend (Last 12 Mo)</h4>
+      <canvas id="revenueChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <h4>Guests Over Time (Last 6 Mo)</h4>
+      <canvas id="guestChart"></canvas>
+    </div>
+  </div>
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- RECENT RESERVATIONS -->
+ <!-- RECENT RESERVATIONS -->
+ <section class="recent-reservations">
+    <h2>Recent Reservations</h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Guest</th>
+          <th>Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for res in recent_reservations %}
+          <tr>
+            <td>{{ res.reservationId }}</td>
+            <td>{{ res.customerFirstName }} {{ res.customerLastName }}</td>
+            <td>{{ res.reservationPlacementDate.strftime('%Y-%m-%d') }}</td>
+            <td>{{ res.status }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script id="dashboard-data" type="application/json">
+    {
+      "bookings":   { "labels": {{ bookings_labels|tojson }}, "data": {{ bookings_data|tojson }} },
+      "revenue":    { "labels": {{ revenue_labels|tojson  }}, "data": {{ revenue_data|tojson  }} },
+      "guests":     { "labels": {{ guests_labels|tojson   }}, "data": {{ guests_data|tojson   }} }
+    }
+  </script>
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Last Resort Hotels{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="logo-container">
+      <img
+        class="logo"
+        src="{{ url_for('static', filename='images/logo.png') }}"
+        alt="Last Resort Hotels logo">
+    </div>
+    <nav>
+      <a href="{{ url_for('dashboard') }}"
+         class="{% if request.endpoint=='dashboard' %}active{% endif %}">
+        Dashboard
+      </a>
+      <a href="{{ url_for('list_reservations') }}"
+         class="{% if request.endpoint=='list_reservations' %}active{% endif %}">
+        Reservations
+      </a>
+      <a href="{{ url_for('list_rooms') }}"
+         class="{% if request.endpoint=='list_rooms' %}active{% endif %}">
+        Rooms
+      </a>
+      <a href="{{ url_for('staff_list') }}"
+         class="{% if request.endpoint=='staff_list' %}active{% endif %}">
+        Staff
+      </a>
+      <a href="{{ url_for('hotel_list') }}"
+         class="{% if request.endpoint=='hotel_list' %}active{% endif %}">
+        Hotels
+      </a>
+      <a href="{{ url_for('customer_search') }}"
+         class="{% if request.endpoint=='customer_search' %}active{% endif %}">
+        Customers
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <header>
+      <h1>{% block header %}{% endblock %}</h1>
+    </header>
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  {% endblock %}
+</body>
+</html>

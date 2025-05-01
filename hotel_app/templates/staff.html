@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+{% block title %}Staff{% endblock %}
+{% block header %}Staff Directory{% endblock %}
+
+{% block content %}
+<table>
+  <thead><tr>
+    <th>ID</th><th>Name</th><th>Department</th>
+  </tr></thead>
+  <tbody>
+  {% for s in staff %}
+    <tr>
+      <td>{{ s.staffId }}</td>
+      <td>{{ s.staffFirstName }} {{ s.staffLastName }}</td>
+      <td>{{ s.department }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

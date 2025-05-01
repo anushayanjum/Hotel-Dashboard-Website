@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block title %}All Rooms{% endblock %}
+{% block header %}All Rooms{% endblock %}
+
+{% block content %}
+  <table>
+    <caption></caption>
+    <thead>
+      <tr>
+        <th>Room ID</th>
+        <th>Number</th>
+        <th>Handicap</th>
+        <th>Smoking</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rooms %}
+      <tr>
+        <td>{{ r.roomId }}</td>
+        <td>{{ r.roomNum }}</td>
+        <td>{{ r.handicapAccess == 1 and 'Yes' or 'No' }}</td>
+        <td>{{ r.smoking       == 1 and 'Yes' or 'No' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
