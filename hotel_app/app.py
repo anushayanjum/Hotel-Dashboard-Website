@@ -38,6 +38,20 @@ def dashboard():
     year         = request.args.get('year', current_year, type=int)
     quarter      = request.args.get('quarter', None,     type=int)
 
+    # determine period start/end for KPI calculations
+    if quarter in (1,2,3,4):
+        start_month = (quarter - 1) * 3 + 1
+        start_date  = datetime.date(year, start_month, 1)
+        if start_month + 3 <= 12:
+            end_date = datetime.date(year, start_month + 3, 1)
+        else:
+            end_date = datetime.date(year + 1, 1, 1)
+    else:
+        start_date = datetime.date(year, 1, 1)
+        end_date   = datetime.date(year + 1, 1, 1)
+    period_days = (end_date - start_date).days
+
+    # build filters
     txn_w = ["YEAR(transactionTime) = %(year)s"]
     mrr_w = [f"YEAR(mrr.`{MEETING_DATE_COL}`) = %(year)s"]
     srr_w = [f"YEAR(srr.`{SLEEPING_DATE_COL}`) = %(year)s"]
@@ -67,7 +81,7 @@ def dashboard():
             """, params)
             total_rev = float(cur.fetchone()['total'])
 
-            # Meeting-room rev
+            # Meeting-room revenue
             cur.execute(f"""
                 SELECT IFNULL(SUM(roomCost),0) AS meeting_rev
                   FROM meeting_room_reservation AS mrr
@@ -75,7 +89,7 @@ def dashboard():
             """, params)
             meeting_rev = float(cur.fetchone()['meeting_rev'] or 0)
 
-            # Sleeping-room rev
+            # Sleeping-room revenue
             cur.execute(f"""
                 SELECT IFNULL(SUM(roomCost),0) AS sleeping_rev
                   FROM sleeping_room_reservation AS srr
@@ -120,9 +134,9 @@ def dashboard():
                     SELECT bd.hotelId, SUM(srr.roomCost) AS sleeping_rev
                       FROM sleeping_room_reservation AS srr
                       JOIN room     AS rm ON srr.roomId    = rm.roomId
-                      JOIN floor    AS fl ON rm.floorId    = fl.floorId
-                      JOIN wing     AS w  ON fl.wingId     = w.wingId
-                      JOIN building AS bd ON w.buildingId  = bd.buildingId
+                      JOIN floor    AS fl ON rm.floorId     = fl.floorId
+                      JOIN wing     AS w  ON fl.wingId      = w.wingId
+                      JOIN building AS bd ON w.buildingId   = bd.buildingId
                      WHERE YEAR(srr.{SLEEPING_DATE_COL}) = %(year)s
                        {sq}
                      GROUP BY bd.hotelId
@@ -147,7 +161,7 @@ def dashboard():
             """, params)
             maint_per_hotel = cur.fetchall()
 
-            # Reservation KPIs
+            # Reservation KPIs: counts & averages
             cur.execute(f"""
                 SELECT COUNT(*) AS cnt
                   FROM reservation
@@ -169,7 +183,7 @@ def dashboard():
             """, params)
             avg_sleep = cur.fetchone()['avg_sleep']
 
-            # Weighted overall stay
+            # Weighted overall stay length
             avg_overall = None
             if avg_meet is not None or avg_sleep is not None:
                 cur.execute(f"""
@@ -188,12 +202,12 @@ def dashboard():
                 if total_count:
                     avg_overall = ((avg_meet or 0)*c1 + (avg_sleep or 0)*c2) / total_count
 
-            # QoQ % change
+            # QoQ revenue change
             pct_rev_change = None
             if quarter in (1,2,3,4):
-                py, pq = year, quarter-1
+                py, pq = year, quarter - 1
                 if pq == 0:
-                    py, pq = year-1, 4
+                    py, pq = year - 1, 4
                 cur.execute("""
                     SELECT IFNULL(SUM(amount),0) AS total
                       FROM `transaction`
@@ -202,11 +216,15 @@ def dashboard():
                 """, {'py': py, 'pq': pq})
                 prev_total = float(cur.fetchone()['total'])
                 if prev_total:
-                    pct_rev_change = (total_rev - prev_total)/prev_total * 100
+                    pct_rev_change = (total_rev - prev_total) / prev_total * 100
 
+            # ────────────────────────────────────────────────────────────────
             # Monthly bookings (12 mo) zero-fill
             cur.execute("""
-                SELECT MONTH(reservationPlacementDate) AS m, COUNT(*) AS cnt
+                SELECT
+                  YEAR(reservationPlacementDate)  AS y,
+                  MONTH(reservationPlacementDate) AS m,
+                  COUNT(*)                        AS cnt
                   FROM reservation
                  WHERE reservationPlacementDate >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
               GROUP BY YEAR(reservationPlacementDate), MONTH(reservationPlacementDate)
@@ -218,7 +236,7 @@ def dashboard():
                 dt = first_of_month - relativedelta(months=i)
                 od[dt.strftime('%b %Y')] = 0
             for r in raw:
-                label = datetime.date(1900, r['m'], 1).strftime('%b %Y')
+                label = datetime.date(r['y'], r['m'], 1).strftime('%b %Y')
                 od[label] = r['cnt']
             bookings_labels = list(od.keys())
             bookings_data   = list(od.values())
@@ -243,27 +261,32 @@ def dashboard():
             revenue_labels = list(od.keys())
             revenue_data   = list(od.values())
 
-            # Guests trend (6 mo) zero-fill
+            # Guests trend over the selected year/quarter
             cur.execute(f"""
-                SELECT YEAR(srr.`{SLEEPING_DATE_COL}`) AS y,
-                       MONTH(srr.`{SLEEPING_DATE_COL}`) AS m,
-                       SUM(srr.numGuests)              AS g
+                SELECT
+                  YEAR(srr.`{SLEEPING_DATE_COL}`) AS y,
+                  MONTH(srr.`{SLEEPING_DATE_COL}`) AS m,
+                  SUM(srr.numGuests)              AS g
                   FROM sleeping_room_reservation AS srr
-                 WHERE srr.`{SLEEPING_DATE_COL}` >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+                 WHERE {build_where(srr_w)}
               GROUP BY YEAR(srr.`{SLEEPING_DATE_COL}`), MONTH(srr.`{SLEEPING_DATE_COL}`)
-            """)
+            """, params)
             raw = cur.fetchall()
+
+            # zero-fill month-by-month across your selected period
             od = OrderedDict()
-            for i in range(5, -1, -1):
-                dt = first_of_month - relativedelta(months=i)
+            dt = start_date
+            while dt < end_date:
                 od[dt.strftime('%b %Y')] = 0
+                dt = (dt.replace(day=1) + relativedelta(months=1))
             for r in raw:
                 key = datetime.date(r['y'], r['m'], 1).strftime('%b %Y')
-                od[key] = r['g']
+                if key in od:
+                    od[key] = r['g']
             guests_labels = list(od.keys())
             guests_data   = list(od.values())
 
-            # 5 most recent reservations
+            # Recent reservations
             cur.execute("""
                 SELECT
                   r.reservationId,
@@ -272,13 +295,64 @@ def dashboard():
                   c.customerFirstName,
                   c.customerLastName
                   FROM reservation AS r
-             LEFT JOIN reservation_status AS rs USING(statusId)
-             JOIN customer AS c ON r.customerId = c.customerId
+             LEFT JOIN reservation_status     AS rs  USING(statusId)
+             JOIN customer                    AS c   ON r.customerId = c.customerId
              ORDER BY r.reservationPlacementDate DESC
              LIMIT 5
             """)
             recent_reservations = cur.fetchall()
 
+            # Occupancy, ADR, RevPAR, cancellation & no-show rates...
+            # (unchanged from before)
+            cur.execute("SELECT COUNT(*) AS total_rooms FROM sleeping_room")
+            total_rooms = cur.fetchone()['total_rooms']
+            nights_available = total_rooms * period_days
+
+            cur.execute("""
+                SELECT IFNULL(SUM(DATEDIFF(checkOutDateTime,checkInDateTime)),0) AS nights_sold
+                  FROM sleeping_room_reservation
+                 WHERE checkInDateTime >= %s
+                   AND checkInDateTime <  %s
+            """, (start_date, end_date))
+            nights_sold = float(cur.fetchone()['nights_sold'])
+            occupancy_rate = (nights_sold / nights_available * 100) if nights_available else None
+            adr    = (sleeping_rev / nights_sold)    if nights_sold       else None
+            revpar = (sleeping_rev / nights_available) if nights_available else None
+
+            cur.execute(f"""
+                SELECT
+                  SUM(statusId = 2) AS cancels,
+                  COUNT(*)         AS total
+                  FROM reservation
+                 WHERE {build_where(res_w)}
+            """, params)
+            row = cur.fetchone()
+            cancels           = row['cancels']
+            total_bookings    = row['total']
+            cancellation_rate = (cancels / total_bookings * 100) if total_bookings else None
+
+            cur.execute(f"""
+                SELECT COUNT(*) AS confirmed
+                  FROM reservation
+                 WHERE statusId = 1
+                   AND {build_where(res_w)}
+            """, params)
+            confirmed = cur.fetchone()['confirmed']
+
+            cur.execute("""
+                SELECT COUNT(DISTINCT reservationId) AS checked_in
+                  FROM (
+                     SELECT reservationId
+                       FROM sleeping_room_reservation
+                      WHERE checkInDateTime >= %s AND checkInDateTime < %s
+                     UNION
+                     SELECT reservationId
+                       FROM meeting_room_reservation
+                      WHERE checkInDateTime >= %s AND checkInDateTime < %s
+                  ) AS t
+            """, (start_date, end_date, start_date, end_date))
+            checked_in = cur.fetchone()['checked_in']
+            no_show_rate = ((confirmed - checked_in) / confirmed * 100) if confirmed else None
 
     finally:
         conn.close()
@@ -300,6 +374,11 @@ def dashboard():
         avg_sleep=avg_sleep,
         avg_overall=avg_overall,
         pct_rev_change=pct_rev_change,
+        occupancy_rate=occupancy_rate,
+        adr=adr,
+        revpar=revpar,
+        cancellation_rate=cancellation_rate,
+        no_show_rate=no_show_rate,
         bookings_labels=bookings_labels,
         bookings_data=bookings_data,
         revenue_labels=revenue_labels,
@@ -344,7 +423,6 @@ def hotel_list():
             hotels = cur.fetchall()
     finally:
         conn.close()
-
     return render_template('hotels.html', hotels=hotels)
 
 
@@ -363,16 +441,15 @@ def hotel_detail(hotel_id):
     conn = get_connection()
     try:
         with conn.cursor() as cur:
+            # hotel basic info
             cur.execute("""
-                SELECT
-                  h.hotelId,
-                  h.hotelName,
-                  h.address
-                FROM hotel AS h
-                WHERE h.hotelId=%(hotel_id)s
+                SELECT hotelId, hotelName, address
+                  FROM hotel
+                 WHERE hotelId=%(hotel_id)s
             """, {'hotel_id': hotel_id})
             hotel = cur.fetchone()
 
+            # meeting rev
             cur.execute(f"""
                 SELECT IFNULL(SUM(mrr.roomCost),0) AS meeting_rev
                   FROM meeting_room_reservation AS mrr
@@ -381,11 +458,12 @@ def hotel_detail(hotel_id):
                   JOIN wing     AS w    USING(wingId)
                   JOIN building AS bd   USING(buildingId)
                  WHERE bd.hotelId=%(hotel_id)s
-                   AND YEAR(mrr.checkInDateTime) = %(year)s
-                   {("AND QUARTER(mrr.checkInDateTime)=%(quarter)s") if quarter in (1,2,3,4) else ""}
+                   AND YEAR(mrr.checkInDateTime)=%(year)s
+                   {('AND QUARTER(mrr.checkInDateTime)=%(quarter)s') if quarter in (1,2,3,4) else ''}
             """, params)
             meeting_rev = float(cur.fetchone()['meeting_rev'])
 
+            # sleeping rev
             cur.execute(f"""
                 SELECT IFNULL(SUM(srr.roomCost),0) AS sleeping_rev
                   FROM sleeping_room_reservation AS srr
@@ -394,23 +472,27 @@ def hotel_detail(hotel_id):
                   JOIN wing     AS w    USING(wingId)
                   JOIN building AS bd   USING(buildingId)
                  WHERE bd.hotelId=%(hotel_id)s
-                   AND YEAR(srr.checkInDateTime) = %(year)s
-                   {("AND QUARTER(srr.checkInDateTime)=%(quarter)s") if quarter in (1,2,3,4) else ""}
+                   AND YEAR(srr.checkInDateTime)=%(year)s
+                   {('AND QUARTER(srr.checkInDateTime)=%(quarter)s') if quarter in (1,2,3,4) else ''}
             """, params)
             sleeping_rev = float(cur.fetchone()['sleeping_rev'])
 
             total_rev = meeting_rev + sleeping_rev
 
+            # rooms detail
             cur.execute("""
-                SELECT
-                  rm.roomNum,
-                  rm.handicapAccess, rm.closeToPool, rm.closeToRestaurant,
-                  rm.closeToParking, rm.closeToGym, rm.smoking
-                FROM room     AS rm
-                JOIN floor    AS fl  USING(floorId)
-                JOIN wing     AS w   USING(wingId)
-                JOIN building AS bd  USING(buildingId)
-               WHERE bd.hotelId=%s
+                SELECT rm.roomNum,
+                       rm.handicapAccess,
+                       rm.closeToPool,
+                       rm.closeToRestaurant,
+                       rm.closeToParking,
+                       rm.closeToGym,
+                       rm.smoking
+                  FROM room     AS rm
+                  JOIN floor    AS fl USING(floorId)
+                  JOIN wing     AS w  USING(wingId)
+                  JOIN building AS bd USING(buildingId)
+                 WHERE bd.hotelId=%s
             """, (hotel_id,))
             rooms = cur.fetchall()
     finally:
@@ -440,21 +522,21 @@ def list_reservations():
                   c.customerFirstName,
                   c.customerLastName,
                   r.reservationPlacementDate,
-                  rs.statusName            AS status,
-                  -- whichever applies, sleeping or meeting
-                  COALESCE(srr.checkInDateTime, mrr.checkInDateTime) AS checkInDate,
-                  h.hotelName              AS hotel
-                FROM reservation AS r
-           LEFT JOIN reservation_status     AS rs  USING(statusId)
-           LEFT JOIN customer               AS c   ON r.customerId = c.customerId
-           LEFT JOIN sleeping_room_reservation AS srr ON r.reservationId = srr.reservationId
-           LEFT JOIN meeting_room_reservation  AS mrr ON r.reservationId = mrr.reservationId
-           LEFT JOIN room                      AS rm  ON COALESCE(srr.roomId,mrr.roomId)=rm.roomId
-           LEFT JOIN floor                     AS fl  ON rm.floorId    = fl.floorId
-           LEFT JOIN wing                      AS w   ON fl.wingId     = w.wingId
-           LEFT JOIN building                  AS bd  ON w.buildingId  = bd.buildingId
-           LEFT JOIN hotel                     AS h   ON bd.hotelId    = h.hotelId
-           ORDER BY r.reservationPlacementDate DESC
+                  rs.statusName                       AS status,
+                  COALESCE(srr.checkInDateTime,
+                           mrr.checkInDateTime)       AS checkInDate,
+                  h.hotelName                         AS hotel
+                  FROM reservation AS r
+             LEFT JOIN reservation_status     AS rs  USING(statusId)
+             LEFT JOIN customer               AS c   ON r.customerId = c.customerId
+             LEFT JOIN sleeping_room_reservation AS srr ON r.reservationId = srr.reservationId
+             LEFT JOIN meeting_room_reservation  AS mrr ON r.reservationId = mrr.reservationId
+             LEFT JOIN room                      AS rm  ON COALESCE(srr.roomId,mrr.roomId)=rm.roomId
+             LEFT JOIN floor                     AS fl  ON rm.floorId    = fl.floorId
+             LEFT JOIN wing                      AS w   ON fl.wingId     = w.wingId
+             LEFT JOIN building                  AS bd  ON w.buildingId  = bd.buildingId
+             LEFT JOIN hotel                     AS h   ON bd.hotelId    = h.hotelId
+             ORDER BY r.reservationPlacementDate DESC
             """)
             reservations = cur.fetchall()
     finally:

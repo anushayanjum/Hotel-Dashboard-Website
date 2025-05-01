@@ -44,7 +44,7 @@ body {
 ──────────────────────────────────────────────────────────────────────────────*/
 .sidebar {
   width: 240px;
-  background-color: var(--primary);
+  background-image: radial-gradient(circle, #1c252e,#71acc9); 
   color: #fff;
   flex-shrink: 0;
   display: flex;
@@ -52,6 +52,7 @@ body {
   align-items: center;
   padding-top: var(--gutter);
 }
+
 
 /* logo at top of sidebar */
 .logo-container {
@@ -256,4 +257,33 @@ ul {
   margin-bottom: 0.5rem;
   font-weight: 700;
   color: var(--primary);
+}
+@media print {
+  .filter-form,
+  .btn-print {
+    display: none !important;
+  }
+
+  .charts,
+  canvas {
+    display: none !important;
+  }
+
+  .cards {
+    display: block;
+  }
+  .card {
+    page-break-inside: avoid;
+    width: 100% !important; 
+    margin-bottom: 1em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th, td {
+    border: 1px solid #444;
+    padding: 0.5em;
+  }
 }

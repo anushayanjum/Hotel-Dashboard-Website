@@ -3,7 +3,11 @@
 {% block header %}Dashboard{% endblock %}
 
 {% block content %}
+
   <form method="get" class="filter-form">
+    <button type="button" class="btn-print" onclick="window.print()">
+        🖨️ Print Dashboard
+      </button>      
     <label>
       Year:
       <input type="number" name="year" value="{{ year }}" min="2000" max="{{ current_year }}">
@@ -21,6 +25,7 @@
   </form>
 
   <div class="cards">
+    <!-- Revenue Insights -->
     <div class="card">
       <h3>Revenue Insights</h3>
       <p><strong>Total:</strong> ${{ total_rev|round(2) }}</p>
@@ -35,6 +40,7 @@
       {% endif %}
     </div>
 
+    <!-- Top 5 Customers -->
     <div class="card">
       <h3>Top 5 Customers</h3>
       <ol>
@@ -44,11 +50,13 @@
       </ol>
     </div>
 
+    <!-- Most Profitable Hotel -->
     <div class="card">
       <h3>Most Profitable Hotel</h3>
       <p>{{ most_profitable.hotelName }} — ${{ most_profitable.revenue|round(2) }}</p>
     </div>
 
+    <!-- Maintenance Requests -->
     <div class="card">
       <h3>Maintenance Requests</h3>
       <ul>
@@ -58,6 +66,7 @@
       </ul>
     </div>
 
+    <!-- Reservation Counts & Lengths -->
     <div class="card">
       <h3>Reservations</h3>
       <p><strong>Total:</strong> {{ total_res }}</p>
@@ -86,6 +95,56 @@
         {% endif %}
       </p>
     </div>
+
+    <!--  Occupancy Rate -->
+    <div class="card">
+      <h3>Occupancy Rate</h3>
+      {% if occupancy_rate is not none %}
+        <p>{{ occupancy_rate|round(1) }}%</p>
+      {% else %}
+        <p>N/A</p>
+      {% endif %}
+    </div>
+
+    <!-- ADR -->
+    <div class="card">
+      <h3>Average Daily Rate (ADR)</h3>
+      {% if adr is not none %}
+        <p>${{ adr|round(2) }}</p>
+      {% else %}
+        <p>N/A</p>
+      {% endif %}
+    </div>
+
+    <!-- RevPAR -->
+    <div class="card">
+      <h3>Revenue per Available Room (RevPAR)</h3>
+      {% if revpar is not none %}
+        <p>${{ revpar|round(2) }}</p>
+      {% else %}
+        <p>N/A</p>
+      {% endif %}
+    </div>
+
+    <!-- Cancellation Rate -->
+    <div class="card">
+      <h3>Cancellation Rate</h3>
+      {% if cancellation_rate is not none %}
+        <p>{{ cancellation_rate|round(1) }}%</p>
+      {% else %}
+        <p>N/A</p>
+      {% endif %}
+    </div>
+
+    <!--No-Show Rate -->
+    <div class="card">
+      <h3>No-Show Rate</h3>
+      {% if no_show_rate is not none %}
+        <p>{{ no_show_rate|round(1) }}%</p>
+      {% else %}
+        <p>N/A</p>
+      {% endif %}
+    </div>
   </div>
 
   <div class="charts">
@@ -102,10 +161,8 @@
       <canvas id="guestChart"></canvas>
     </div>
   </div>
-  <!-- ─────────────────────────────────────────────────────────────────── -->
-  <!-- RECENT RESERVATIONS -->
- <!-- RECENT RESERVATIONS -->
- <section class="recent-reservations">
+
+  <section class="recent-reservations">
     <h2>Recent Reservations</h2>
     <table class="table">
       <thead>
