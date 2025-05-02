@@ -38,7 +38,7 @@ def dashboard():
     year         = request.args.get('year', current_year, type=int)
     quarter      = request.args.get('quarter', None,     type=int)
 
-    # determine period start/end for KPI calculations
+    # determine period start/end for KPIs & occupancy
     if quarter in (1,2,3,4):
         start_month = (quarter - 1) * 3 + 1
         start_date  = datetime.date(year, start_month, 1)
@@ -51,7 +51,7 @@ def dashboard():
         end_date   = datetime.date(year + 1, 1, 1)
     period_days = (end_date - start_date).days
 
-    # build filters
+    # build our WHERE filters
     txn_w = ["YEAR(transactionTime) = %(year)s"]
     mrr_w = [f"YEAR(mrr.`{MEETING_DATE_COL}`) = %(year)s"]
     srr_w = [f"YEAR(srr.`{SLEEPING_DATE_COL}`) = %(year)s"]
@@ -218,75 +218,112 @@ def dashboard():
                 if prev_total:
                     pct_rev_change = (total_rev - prev_total) / prev_total * 100
 
-            # ────────────────────────────────────────────────────────────────
-            # Monthly bookings (12 mo) zero-fill
-            cur.execute("""
-                SELECT
-                  YEAR(reservationPlacementDate)  AS y,
-                  MONTH(reservationPlacementDate) AS m,
-                  COUNT(*)                        AS cnt
-                  FROM reservation
-                 WHERE reservationPlacementDate >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
-              GROUP BY YEAR(reservationPlacementDate), MONTH(reservationPlacementDate)
-            """)
-            raw = cur.fetchall()
-            od = OrderedDict()
-            first_of_month = now.replace(day=1)
-            for i in range(11, -1, -1):
-                dt = first_of_month - relativedelta(months=i)
-                od[dt.strftime('%b %Y')] = 0
-            for r in raw:
-                label = datetime.date(r['y'], r['m'], 1).strftime('%b %Y')
-                od[label] = r['cnt']
-            bookings_labels = list(od.keys())
-            bookings_data   = list(od.values())
+            # ─── Build chart data: quarter vs. rolling window ─────────────
+            if quarter in (1,2,3,4):
+                # three-month span
+                quarter_start = start_date.replace(day=1)
+                quarter_months = [quarter_start + relativedelta(months=i) for i in range(3)]
+                labels = [dt.strftime('%b %Y') for dt in quarter_months]
 
-            # Revenue trend (12 mo) zero-fill
-            cur.execute("""
-                SELECT YEAR(transactionTime) AS y,
-                       MONTH(transactionTime) AS m,
-                       SUM(amount)             AS total
-                  FROM `transaction`
-                 WHERE transactionTime >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
-              GROUP BY YEAR(transactionTime), MONTH(transactionTime)
-            """)
-            raw = cur.fetchall()
-            od = OrderedDict()
-            for i in range(11, -1, -1):
-                dt = first_of_month - relativedelta(months=i)
-                od[dt.strftime('%b %Y')] = 0.0
-            for r in raw:
-                key = datetime.date(r['y'], r['m'], 1).strftime('%b %Y')
-                od[key] = float(r['total'])
-            revenue_labels = list(od.keys())
-            revenue_data   = list(od.values())
+                # Bookings in quarter
+                cur.execute("""
+                    SELECT MONTH(reservationPlacementDate) AS m, COUNT(*) AS cnt
+                      FROM reservation
+                     WHERE YEAR(reservationPlacementDate)=%(year)s
+                       AND QUARTER(reservationPlacementDate)=%(quarter)s
+                     GROUP BY MONTH(reservationPlacementDate)
+                """, params)
+                raw = {r['m']: r['cnt'] for r in cur.fetchall()}
+                bookings_labels = labels
+                bookings_data   = [raw.get(dt.month, 0) for dt in quarter_months]
 
-            # Guests trend over the selected year/quarter
-            cur.execute(f"""
-                SELECT
-                  YEAR(srr.`{SLEEPING_DATE_COL}`) AS y,
-                  MONTH(srr.`{SLEEPING_DATE_COL}`) AS m,
-                  SUM(srr.numGuests)              AS g
-                  FROM sleeping_room_reservation AS srr
-                 WHERE {build_where(srr_w)}
-              GROUP BY YEAR(srr.`{SLEEPING_DATE_COL}`), MONTH(srr.`{SLEEPING_DATE_COL}`)
-            """, params)
-            raw = cur.fetchall()
+                # Revenue in quarter
+                cur.execute("""
+                    SELECT MONTH(transactionTime) AS m, SUM(amount) AS total
+                      FROM `transaction`
+                     WHERE YEAR(transactionTime)=%(year)s
+                       AND QUARTER(transactionTime)=%(quarter)s
+                     GROUP BY MONTH(transactionTime)
+                """, params)
+                raw = {r['m']: float(r['total'] or 0) for r in cur.fetchall()}
+                revenue_labels = labels
+                revenue_data   = [raw.get(dt.month, 0.0) for dt in quarter_months]
 
-            # zero-fill month-by-month across your selected period
-            od = OrderedDict()
-            dt = start_date
-            while dt < end_date:
-                od[dt.strftime('%b %Y')] = 0
-                dt = (dt.replace(day=1) + relativedelta(months=1))
-            for r in raw:
-                key = datetime.date(r['y'], r['m'], 1).strftime('%b %Y')
-                if key in od:
+                # Guests in quarter
+                cur.execute(f"""
+                    SELECT MONTH(srr.`{SLEEPING_DATE_COL}`) AS m, SUM(srr.numGuests) AS g
+                      FROM sleeping_room_reservation AS srr
+                     WHERE YEAR(srr.`{SLEEPING_DATE_COL}`)=%(year)s
+                       AND QUARTER(srr.`{SLEEPING_DATE_COL}`)=%(quarter)s
+                     GROUP BY MONTH(srr.`{SLEEPING_DATE_COL}`)
+                """, params)
+                raw = {r['m']: r['g'] for r in cur.fetchall()}
+                guests_labels = labels
+                guests_data   = [raw.get(dt.month, 0) for dt in quarter_months]
+            else:
+                # Monthly bookings (last 12 mo)
+                cur.execute("""
+                    SELECT YEAR(reservationPlacementDate)  AS y,
+                           MONTH(reservationPlacementDate) AS m,
+                           COUNT(*)                        AS cnt
+                      FROM reservation
+                     WHERE reservationPlacementDate >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+                  GROUP BY YEAR(reservationPlacementDate), MONTH(reservationPlacementDate)
+                """)
+                raw = cur.fetchall()
+                od = OrderedDict()
+                first_of_month = now.replace(day=1)
+                for i in range(11, -1, -1):
+                    dt = first_of_month - relativedelta(months=i)
+                    od[dt.strftime('%b %Y')] = 0
+                for r in raw:
+                    label = datetime.date(r['y'], r['m'], 1).strftime('%b %Y')
+                    od[label] = r['cnt']
+                bookings_labels = list(od.keys())
+                bookings_data   = list(od.values())
+
+                # Revenue trend (last 12 mo)
+                cur.execute("""
+                    SELECT YEAR(transactionTime) AS y,
+                           MONTH(transactionTime) AS m,
+                           SUM(amount)             AS total
+                      FROM `transaction`
+                     WHERE transactionTime >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+                  GROUP BY YEAR(transactionTime), MONTH(transactionTime)
+                """)
+                raw = cur.fetchall()
+                od = OrderedDict()
+                first_of_month = now.replace(day=1)
+                for i in range(11, -1, -1):
+                    dt = first_of_month - relativedelta(months=i)
+                    od[dt.strftime('%b %Y')] = 0.0
+                for r in raw:
+                    key = datetime.date(r['y'], r['m'], 1).strftime('%b %Y')
+                    od[key] = float(r['total'])
+                revenue_labels = list(od.keys())
+                revenue_data   = list(od.values())
+
+                # Guests trend (last 6 mo)
+                cur.execute(f"""
+                    SELECT YEAR(srr.`{SLEEPING_DATE_COL}`) AS y,
+                           MONTH(srr.`{SLEEPING_DATE_COL}`) AS m,
+                           SUM(srr.numGuests)              AS g
+                      FROM sleeping_room_reservation AS srr
+                     WHERE srr.`{SLEEPING_DATE_COL}` >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+                  GROUP BY YEAR(srr.`{SLEEPING_DATE_COL}`), MONTH(srr.`{SLEEPING_DATE_COL}`)
+                """)
+                raw = cur.fetchall()
+                od = OrderedDict()
+                for i in range(5, -1, -1):
+                    dt = first_of_month - relativedelta(months=i)
+                    od[dt.strftime('%b %Y')] = 0
+                for r in raw:
+                    key = datetime.date(r['y'], r['m'], 1).strftime('%b %Y')
                     od[key] = r['g']
-            guests_labels = list(od.keys())
-            guests_data   = list(od.values())
+                guests_labels = list(od.keys())
+                guests_data   = list(od.values())
 
-            # Recent reservations
+            # 5 most recent reservations
             cur.execute("""
                 SELECT
                   r.reservationId,
@@ -302,8 +339,7 @@ def dashboard():
             """)
             recent_reservations = cur.fetchall()
 
-            # Occupancy, ADR, RevPAR, cancellation & no-show rates...
-            # (unchanged from before)
+            # Occupancy Rate, ADR, RevPAR, Cancel/No-Show
             cur.execute("SELECT COUNT(*) AS total_rooms FROM sleeping_room")
             total_rooms = cur.fetchone()['total_rooms']
             nights_available = total_rooms * period_days
@@ -315,9 +351,10 @@ def dashboard():
                    AND checkInDateTime <  %s
             """, (start_date, end_date))
             nights_sold = float(cur.fetchone()['nights_sold'])
+
             occupancy_rate = (nights_sold / nights_available * 100) if nights_available else None
-            adr    = (sleeping_rev / nights_sold)    if nights_sold       else None
-            revpar = (sleeping_rev / nights_available) if nights_available else None
+            adr            = (sleeping_rev   / nights_sold)    if nights_sold    else None
+            revpar         = (sleeping_rev   / nights_available) if nights_available else None
 
             cur.execute(f"""
                 SELECT
@@ -433,7 +470,6 @@ def hotel_detail(hotel_id):
     year         = request.args.get('year', current_year, type=int)
     quarter      = request.args.get('quarter', None,     type=int)
 
-    hotel_filter = "bd.hotelId = %(hotel_id)s"
     params = {'hotel_id': hotel_id, 'year': year}
     if quarter in (1,2,3,4):
         params['quarter'] = quarter
@@ -441,7 +477,6 @@ def hotel_detail(hotel_id):
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # hotel basic info
             cur.execute("""
                 SELECT hotelId, hotelName, address
                   FROM hotel
@@ -449,7 +484,6 @@ def hotel_detail(hotel_id):
             """, {'hotel_id': hotel_id})
             hotel = cur.fetchone()
 
-            # meeting rev
             cur.execute(f"""
                 SELECT IFNULL(SUM(mrr.roomCost),0) AS meeting_rev
                   FROM meeting_room_reservation AS mrr
@@ -463,7 +497,6 @@ def hotel_detail(hotel_id):
             """, params)
             meeting_rev = float(cur.fetchone()['meeting_rev'])
 
-            # sleeping rev
             cur.execute(f"""
                 SELECT IFNULL(SUM(srr.roomCost),0) AS sleeping_rev
                   FROM sleeping_room_reservation AS srr
@@ -479,7 +512,6 @@ def hotel_detail(hotel_id):
 
             total_rev = meeting_rev + sleeping_rev
 
-            # rooms detail
             cur.execute("""
                 SELECT rm.roomNum,
                        rm.handicapAccess,
