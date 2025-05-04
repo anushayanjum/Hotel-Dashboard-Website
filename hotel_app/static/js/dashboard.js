@@ -67,3 +67,5 @@ document.addEventListener('DOMContentLoaded', () => {
     'rgba(0,165,207,1)'
   );
 });
+
+//Checked by Anushay 

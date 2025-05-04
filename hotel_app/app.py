@@ -1,3 +1,5 @@
+## Imports
+
 from flask import Flask, render_template, request, redirect, url_for
 import pymysql
 import datetime
@@ -6,6 +8,7 @@ from dateutil.relativedelta import relativedelta
 
 app = Flask(__name__)
 
+## Database Configuration
 DB_CONFIG = {
     'host':     'localhost',
     'user':     'root',
@@ -15,6 +18,7 @@ DB_CONFIG = {
     'cursorclass': pymysql.cursors.DictCursor
 }
 
+## Initialization
 MEETING_DATE_COL  = 'checkInDateTime'
 SLEEPING_DATE_COL = 'checkInDateTime'
 MAINT_DATE_COL    = 'startDateTime'
@@ -26,11 +30,14 @@ def build_where(clauses):
     return " AND ".join(clauses)
 
 
+
+## Flask Routes
 @app.route('/')
 def home():
     return redirect(url_for('dashboard'))
 
 
+## Dashboard
 @app.route('/dashboard')
 def dashboard():
     now          = datetime.datetime.now()
@@ -38,7 +45,6 @@ def dashboard():
     year         = request.args.get('year', current_year, type=int)
     quarter      = request.args.get('quarter', None,     type=int)
 
-    # determine period start/end for KPIs & occupancy
     if quarter in (1,2,3,4):
         start_month = (quarter - 1) * 3 + 1
         start_date  = datetime.date(year, start_month, 1)
@@ -51,7 +57,6 @@ def dashboard():
         end_date   = datetime.date(year + 1, 1, 1)
     period_days = (end_date - start_date).days
 
-    # build our WHERE filters
     txn_w = ["YEAR(transactionTime) = %(year)s"]
     mrr_w = [f"YEAR(mrr.`{MEETING_DATE_COL}`) = %(year)s"]
     srr_w = [f"YEAR(srr.`{SLEEPING_DATE_COL}`) = %(year)s"]
@@ -218,7 +223,7 @@ def dashboard():
                 if prev_total:
                     pct_rev_change = (total_rev - prev_total) / prev_total * 100
 
-            # ─── Build chart data: quarter vs. rolling window ─────────────
+            ## Build chart data
             if quarter in (1,2,3,4):
                 # three-month span
                 quarter_start = start_date.replace(day=1)
@@ -261,7 +266,7 @@ def dashboard():
                 guests_labels = labels
                 guests_data   = [raw.get(dt.month, 0) for dt in quarter_months]
             else:
-                # Monthly bookings (last 12 mo)
+                # Monthly bookings 
                 cur.execute("""
                     SELECT YEAR(reservationPlacementDate)  AS y,
                            MONTH(reservationPlacementDate) AS m,
@@ -282,7 +287,7 @@ def dashboard():
                 bookings_labels = list(od.keys())
                 bookings_data   = list(od.values())
 
-                # Revenue trend (last 12 mo)
+                # Revenue trend 
                 cur.execute("""
                     SELECT YEAR(transactionTime) AS y,
                            MONTH(transactionTime) AS m,
@@ -303,7 +308,7 @@ def dashboard():
                 revenue_labels = list(od.keys())
                 revenue_data   = list(od.values())
 
-                # Guests trend (last 6 mo)
+                # Guests trend 
                 cur.execute(f"""
                     SELECT YEAR(srr.`{SLEEPING_DATE_COL}`) AS y,
                            MONTH(srr.`{SLEEPING_DATE_COL}`) AS m,
@@ -426,6 +431,7 @@ def dashboard():
     )
 
 
+## Room Search Mechanism
 @app.route('/search')
 def search_rooms():
     query = request.args.get('query', '').strip()
@@ -442,6 +448,7 @@ def search_rooms():
     return render_template('search.html', query=query, rooms=rooms)
 
 
+## Hotel page
 @app.route('/hotels')
 def hotel_list():
     conn = get_connection()
@@ -462,7 +469,7 @@ def hotel_list():
         conn.close()
     return render_template('hotels.html', hotels=hotels)
 
-
+## Hotel details
 @app.route('/hotels/<int:hotel_id>')
 def hotel_detail(hotel_id):
     now          = datetime.datetime.now()
@@ -543,6 +550,7 @@ def hotel_detail(hotel_id):
     )
 
 
+## Reservation page
 @app.route('/reservations')
 def list_reservations():
     conn = get_connection()
@@ -577,6 +585,7 @@ def list_reservations():
     return render_template('reservations.html', reservations=reservations)
 
 
+## Room page
 @app.route('/rooms')
 def list_rooms():
     conn = get_connection()
@@ -595,6 +604,7 @@ def list_rooms():
     return render_template('rooms.html', rooms=rooms)
 
 
+## Staff look up
 @app.route('/staff')
 def staff_list():
     conn = get_connection()
@@ -610,7 +620,7 @@ def staff_list():
 
     return render_template('staff.html', staff=staff)
 
-
+## Customer look up
 @app.route('/customers')
 def customer_search():
     q = request.args.get('q', '').strip()
@@ -662,5 +672,9 @@ def customer_search():
     return render_template('customer.html', query=q, customers=customers)
 
 
+## Main run
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+## Checked by Anushay 

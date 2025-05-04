@@ -1,27 +1,13 @@
-/*──────────────────────────────────────────────────────────────────────────────
-  style.css
-  ──────────────────────────────────────────────────────────────────────────────
-  - Google Font import
-  - CSS variables for colors, spacings & typography
-  - Sidebar + logo
-  - Main content, filter form, cards, charts
-  - Tables with responsive wrapper
-──────────────────────────────────────────────────────────────────────────────*/
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
 :root {
-  /* ─── TYPO ─────────────────────────────────────────────────────────────── */
   --font-sans:   'Poppins', sans-serif;
   --text:        #333;
-
-  /* ─── COLORS ──────────────────────────────────────────────────────────── */
   --primary:     #005680;
   --secondary:   #00a5cf;
   --bg-light:    #f5f8fa;
   --card-bg:     #ffffff;
-
-  /* ─── SPACING ────────────────────────────────────────────────────────── */
   --gutter:      1.5rem;
 }
 
@@ -53,8 +39,6 @@ body {
   padding-top: var(--gutter);
 }
 
-
-/* logo at top of sidebar */
 .logo-container {
   margin-bottom: var(--gutter);
 }
@@ -64,7 +48,6 @@ body {
   display: block;
 }
 
-/* simple watermark behind nav (optional) */
 .sidebar::before {
   content: "";
   position: absolute;
@@ -164,8 +147,6 @@ header h1 {
   margin-bottom: .5rem;
   line-height: 1.3;
 }
-
-/* Q→Q % badge */
 .pct-change {
   display: inline-flex;
   align-items: center;
@@ -217,7 +198,7 @@ ul {
 }
 
 /*──────────────────────────────────────────────────────────────────────────────
-  TABLES (with responsive wrapper)
+  TABLES
 ──────────────────────────────────────────────────────────────────────────────*/
 .table-responsive {
   overflow-x: auto;
@@ -287,3 +268,7 @@ ul {
     padding: 0.5em;
   }
 }
+
+/*──────────────────────────────────────────────────────────────────────────────
+Checked by Anushay 
+──────────────────────────────────────────────────────────────────────────────*/

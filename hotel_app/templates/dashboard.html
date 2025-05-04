@@ -25,6 +25,7 @@
   </form>
 
   <div class="cards">
+
     <!-- Revenue Insights -->
     <div class="card">
       <h3>Revenue Insights</h3>
@@ -147,17 +148,19 @@
     </div>
   </div>
 
+      <!-- Charts -->
+      
   <div class="charts">
     <div class="chart-card">
       <h4>Monthly Bookings</h4>
       <canvas id="bookingsChart"></canvas>
     </div>
     <div class="chart-card">
-      <h4>Revenue Trend (Last 12 Mo)</h4>
+      <h4>Revenue Trend</h4>
       <canvas id="revenueChart"></canvas>
     </div>
     <div class="chart-card">
-      <h4>Guests Over Time (Last 6 Mo)</h4>
+      <h4>Guests Over Time</h4>
       <canvas id="guestChart"></canvas>
     </div>
   </div>
@@ -198,3 +201,5 @@
   </script>
   <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}
+
+<!-- Checked by Anushay -->
