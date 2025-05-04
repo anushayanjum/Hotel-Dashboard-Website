@@ -35,7 +35,7 @@ It provides an interactive dashboard with key performance indicators (KPIs), tre
 
 # HOW TO RUN
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Python 3.7 or newer  
 - MySQL server (5.7+)  
