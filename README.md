@@ -1,10 +1,3 @@
-**Updating README**
-
-The user wants to remove the license section and its badges. I'll update the markdown: remove the license badge at the top, remove any references to the LICENSE file, and delete the License & Contact section at the bottom. The Table of Contents will also need to be edited: I'll remove the "License & Contact" entry and possibly rename the last item to "Contact" or "Bugs & Feature Requests." I'll now show the updated README markdown code without the license details.
-
-
-Thought for 4 seconds
-
 
 ````markdown
 # Hotel Management Dashboard for Last Resort Hotels
