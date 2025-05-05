@@ -77,32 +77,28 @@ Make sure you have the following installed:
    ```bash
    git clone https://github.com/anushayanjum/hotel-management-dashboard.git
    cd hotel-management-dashboard
-````
 
 2. **Create & activate a virtual environment**
 
-   ```bash
    python3 -m venv venv
    # macOS/Linux:
    source venv/bin/activate
    # Windows:
    venv\Scripts\activate
-   ```
+   
 
 3. **Install Python dependencies**
 
-   ```bash
    pip install -r requirements.txt
-   ```
+   
 
 4. **Database setup**
 
    * Create a MySQL database named `hotel_management`.
    * Run the provided schema to create all tables:
 
-     ```bash
      mysql -u root -p hotel_management < data/CompleteDatabase.sql
-     ```
+     
    * *(Optional)* Load sample data if available.
 
 5. **Environment variables**
