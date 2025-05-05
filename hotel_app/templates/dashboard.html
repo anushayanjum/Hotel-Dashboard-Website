@@ -3,11 +3,10 @@
 {% block header %}Dashboard{% endblock %}
 
 {% block content %}
-
   <form method="get" class="filter-form">
     <button type="button" class="btn-print" onclick="window.print()">
-        🖨️ Print Dashboard
-      </button>      
+      🖨️ Print Dashboard
+    </button>
     <label>
       Year:
       <input type="number" name="year" value="{{ year }}" min="2000" max="{{ current_year }}">
@@ -81,8 +80,8 @@
       </p>
       <p>
         &nbsp;&nbsp;&mdash; Meeting:
-        {% if avg_meet is not none %}
-          {{ avg_meet|round(1) }} days
+        {% if avg_meet_hours is not none %}
+          {{ avg_meet_hours|round(1) }} hours
         {% else %}
           N/A
         {% endif %}
@@ -97,7 +96,7 @@
       </p>
     </div>
 
-    <!--  Occupancy Rate -->
+    <!-- Occupancy Rate -->
     <div class="card">
       <h3>Occupancy Rate</h3>
       {% if occupancy_rate is not none %}
@@ -117,11 +116,11 @@
       {% endif %}
     </div>
 
-    <!-- RevPAR -->
+    <!-- Revenue per Available Room -->
     <div class="card">
-      <h3>Revenue per Available Room (RevPAR)</h3>
-      {% if revpar is not none %}
-        <p>${{ revpar|round(2) }}</p>
+      <h3>Revenue per Available Room</h3>
+      {% if revenue_per_available_room is not none %}
+        <p>${{ revenue_per_available_room|round(2) }}</p>
       {% else %}
         <p>N/A</p>
       {% endif %}
@@ -137,19 +136,34 @@
       {% endif %}
     </div>
 
-    <!--No-Show Rate -->
-    <div class="card">
-      <h3>No-Show Rate</h3>
-      {% if no_show_rate is not none %}
-        <p>{{ no_show_rate|round(1) }}%</p>
-      {% else %}
-        <p>N/A</p>
-      {% endif %}
+    <!-- Recent Reservations (spans two columns) -->
+    <div class="card span-2">
+      <h3>Recent Reservations</h3>
+      <table class="table recent-inline">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Guest</th>
+            <th>Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for res in recent_reservations %}
+            <tr>
+              <td>{{ res.reservationId }}</td>
+              <td>{{ res.customerFirstName }} {{ res.customerLastName }}</td>
+              <td>{{ res.reservationPlacementDate.strftime('%Y-%m-%d') }}</td>
+              <td>{{ res.status }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-  </div>
 
-      <!-- Charts -->
-      
+  </div> <!-- end .cards -->
+
+  <!-- Charts -->
   <div class="charts">
     <div class="chart-card">
       <h4>Monthly Bookings</h4>
@@ -165,38 +179,15 @@
     </div>
   </div>
 
-  <section class="recent-reservations">
-    <h2>Recent Reservations</h2>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Guest</th>
-          <th>Date</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for res in recent_reservations %}
-          <tr>
-            <td>{{ res.reservationId }}</td>
-            <td>{{ res.customerFirstName }} {{ res.customerLastName }}</td>
-            <td>{{ res.reservationPlacementDate.strftime('%Y-%m-%d') }}</td>
-            <td>{{ res.status }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </section>
 {% endblock %}
 
 {% block scripts %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script id="dashboard-data" type="application/json">
     {
-      "bookings":   { "labels": {{ bookings_labels|tojson }}, "data": {{ bookings_data|tojson }} },
-      "revenue":    { "labels": {{ revenue_labels|tojson  }}, "data": {{ revenue_data|tojson  }} },
-      "guests":     { "labels": {{ guests_labels|tojson   }}, "data": {{ guests_data|tojson   }} }
+      "bookings": { "labels": {{ bookings_labels|tojson }}, "data": {{ bookings_data|tojson }} },
+      "revenue":  { "labels": {{ revenue_labels|tojson  }}, "data": {{ revenue_data|tojson  }} },
+      "guests":   { "labels": {{ guests_labels|tojson   }}, "data": {{ guests_data|tojson   }} }
     }
   </script>
   <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
