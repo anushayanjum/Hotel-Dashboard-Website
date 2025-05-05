@@ -74,21 +74,17 @@ Make sure you have the following installed:
 ## Installation & Setup
 
 1. **Clone the repository** 
- 
-   ```bash
+
    git clone https://github.com/anushayanjum/hotel-management-dashboard.git
    cd hotel-management-dashboard
-````
 
 2. **Create & activate a virtual environment**
 
-   ```bash
    python3 -m venv venv
    # macOS/Linux:
    source venv/bin/activate
    # Windows:
    venv\Scripts\activate
-   ```
 
 3. **Install Python dependencies**
 
