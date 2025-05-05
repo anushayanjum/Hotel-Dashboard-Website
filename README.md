@@ -1,5 +1,3 @@
-
-````markdown
 # Hotel Management Dashboard for Last Resort Hotels
 
 [![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)](https://www.python.org/)  
@@ -271,5 +269,4 @@ hotel-management-dashboard/
 * **Bugs & Feature Requests:**
   [https://github.com/anushayanjum/hotel-management-dashboard/issues](https://github.com/anushayanjum/hotel-management-dashboard/issues)
 
-```
-```
+
