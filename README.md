@@ -1,5 +1,4 @@
 
-
 ````markdown
 # Hotel Management Dashboard for Last Resort Hotels
 
