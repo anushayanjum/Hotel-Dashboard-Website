@@ -1,9 +1,3 @@
-**Updating README**
-
-The user wants to remove the license section and its badges. I'll update the markdown: remove the license badge at the top, remove any references to the LICENSE file, and delete the License & Contact section at the bottom. The Table of Contents will also need to be edited: I'll remove the "License & Contact" entry and possibly rename the last item to "Contact" or "Bugs & Feature Requests." I'll now show the updated README markdown code without the license details.
-
-
-Thought for 4 seconds
 
 
 ````markdown
@@ -47,7 +41,7 @@ A Flask-based dashboard for Professor David Prager’s Spring 2025 CS060 class a
 - **ADR (Average Daily Rate)**  
 - **Revenue per Available Room**  
 - **Cancellation Rate (%)**  
-- **Time-Series Charts**: Bookings, revenue, guest trends  
+- **Time-Series Charts**: bookings, revenue, guest trends  
 
 ### Search & Listings
 - **Room Lookup** by number  
@@ -65,7 +59,7 @@ A Flask-based dashboard for Professor David Prager’s Spring 2025 CS060 class a
 |-------------|-------------------------------------------------|
 | **Backend** | Python 3.7+, Flask, PyMySQL, python-dateutil, python-dotenv |
 | **Frontend**| Jinja2, Chart.js (via CDN)                      |
-| **Database**| MySQL 5.7+                                      |
+| **Database**| MySQL 5.7+                                       |
 
 ---
 
@@ -144,14 +138,14 @@ Open your browser to [http://127.0.0.1:5000/](http://127.0.0.1:5000/).
 
 ## Project Structure
 
-```
+```text
 hotel-management-dashboard/
-├── .env                  # environment variables (DB credentials)
-├── app.py                # main Flask application
-├── requirements.txt      # Python dependencies
-├── data/                 # SQL schema & sample data
+├── .env                    # environment variables (DB credentials)
+├── app.py                  # main Flask application
+├── requirements.txt        # Python dependencies
+├── data/                   # SQL schema & sample data
 │   └── CompleteDatabase.sql
-├── templates/            # Jinja2 templates
+├── templates/              # Jinja2 templates
 │   ├── dashboard.html
 │   ├── hotels.html
 │   ├── hotel_detail.html
@@ -160,8 +154,8 @@ hotel-management-dashboard/
 │   ├── staff.html
 │   └── customer.html
 └── static/
-    ├── css/              # CSS files
-    └── js/               # JavaScript (Chart.js logic)
+    ├── css/                # CSS files
+    └── js/                 # JavaScript (Chart.js logic)
         └── dashboard.js
 ```
 
@@ -218,11 +212,11 @@ hotel-management-dashboard/
    ```sql
    SELECT h.hotelName, COUNT(*) AS req_count
      FROM room_maintenance m
-     JOIN room    r  ON m.roomId = r.roomId
-     JOIN floor   f  ON r.floorId = f.floorId
-     JOIN wing    w  ON f.wingId = w.wingId
+     JOIN room    r ON m.roomId = r.roomId
+     JOIN floor   f ON r.floorId = f.floorId
+     JOIN wing    w ON f.wingId = w.wingId
      JOIN building b ON w.buildingId = b.buildingId
-     JOIN hotel   h  ON b.hotelId = h.hotelId
+     JOIN hotel   h ON b.hotelId = h.hotelId
     WHERE YEAR(startDateTime)=<year>
       [AND QUARTER(startDateTime)=<quarter>]
     GROUP BY h.hotelId
@@ -246,19 +240,19 @@ hotel-management-dashboard/
 
 8. **Occupancy Rate (%)**
 
-   ```
+   ```text
    (nights_sold / (total_rooms * period_days)) * 100
    ```
 
 9. **ADR (Average Daily Rate)**
 
-   ```
+   ```text
    sleeping_room_revenue / nights_sold
    ```
 
 10. **Revenue per Available Room**
 
-    ```
+    ```text
     sleeping_room_revenue / (total_rooms * period_days)
     ```
 
