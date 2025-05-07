@@ -12,7 +12,7 @@ app = Flask(__name__)
 DB_CONFIG = {
     'host':     'localhost',
     'user':     'root',
-    'password': 'CAS!2345',
+    'password': 'butterfly786',
     'db':       'hotel_management',
     'charset':  'utf8mb4',
     'cursorclass': pymysql.cursors.DictCursor
